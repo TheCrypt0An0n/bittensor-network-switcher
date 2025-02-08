@@ -3,7 +3,6 @@ import os
 import sys
 import json
 import argparse
-import subprocess
 
 class BittensorNetworkSwitcher:
     def __init__(self):
@@ -21,7 +20,7 @@ class BittensorNetworkSwitcher:
             with open(self.config_path, 'r') as f:
                 return json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
-            return {}
+            return {'network': 'Not set'}
 
     def write_config(self, config):
         """Write configuration to network_config.json."""
@@ -39,39 +38,19 @@ class BittensorNetworkSwitcher:
             print(f"Error: Invalid network '{network}'. Choose 'mainnet' or 'testnet'.")
             sys.exit(1)
 
-        try:
-            # Attempt to use bt command to switch network
-            result = subprocess.run(['bt', 'network', network], 
-                                    capture_output=True, 
-                                    text=True, 
-                                    check=True)
-            print(f"✅ Successfully switched to {network}!")
-            print(result.stdout)
-        except subprocess.CalledProcessError as e:
-            print(f"Error switching network: {e}")
-            print(e.stderr)
-            
-            # Fallback to config file method
-            config = self.read_config()
-            config['network'] = network
-            self.write_config(config)
-            print(f"⚠️ Fallback: Updated network config to {network}")
+        # Update configuration
+        config = self.read_config()
+        config['network'] = network
+        self.write_config(config)
+        
+        print(f"✅ Successfully set network to {network}")
+        print("Note: You may need to restart your Bittensor services to apply this change.")
 
     def check_current_network(self):
         """Check and display current network."""
-        try:
-            # Try to get network info from bt command
-            result = subprocess.run(['bt', 'network'], 
-                                    capture_output=True, 
-                                    text=True, 
-                                    check=True)
-            print("Current Network Information:")
-            print(result.stdout)
-        except subprocess.CalledProcessError:
-            # Fallback to config file
-            config = self.read_config()
-            current_network = config.get('network', 'Not set')
-            print(f"Current network (from config): {current_network}")
+        config = self.read_config()
+        current_network = config.get('network', 'Not set')
+        print(f"Current network: {current_network}")
 
     def interactive_mode(self):
         """Interactive network switching."""
